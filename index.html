@@ -1,0 +1,2457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Korea Visual Diary – My Korea Memory Map</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Nanum+Myeongjo:wght@400;700;800&display=swap" rel="stylesheet">
+
+  <!-- Leaflet -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <style>
+    :root {
+      --bg1: #504E76;
+      --bg2: #C4C3E3;
+      --sand: #FDF8E2;
+      --leaf: #A3B565;
+      --sun: #FCDD9D;
+      --accent: #F1642E;
+      --card: #ffffff;
+      --ink: #252336;
+      --muted: #b9b6d6;
+      --glass: rgba(255,255,255,0.12);
+      --glass-border: rgba(255,255,255,0.35);
+      --shadow-soft: 0 18px 40px rgba(0,0,0,.28);
+      --radius-xl: 26px;
+      --radius-lg: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: "Gowun Dodum", "Noto Sans KR", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--sand);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      background: radial-gradient(circle at 20% 0%, var(--sun) 0, transparent 50%),
+                  radial-gradient(circle at 80% 0%, #E4E3FF 0, transparent 50%),
+                  linear-gradient(180deg, var(--bg1), var(--bg2));
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 1280px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));
+      border-radius: var(--radius-xl);
+      border: 1px solid rgba(255,255,255,.25);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(22px) saturate(150%);
+      display: flex;
+      flex-direction: column;
+      padding: 18px 22px;
+    }
+
+    /* HEADER */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .title-block h1 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: #fff;
+      font-family: "Nanum Myeongjo", "Gowun Dodum", "Noto Sans KR", serif;
+      font-weight: 700;
+    }
+
+    .title-block p {
+      margin: 2px 0 0;
+      font-size: 13px;
+      color: rgba(253,248,226,0.7);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      min-width: 0;
+    }
+
+    .year-filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .year-chip {
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.35);
+      background: rgba(0,0,0,.12);
+      color: #fdfdfd;
+      font-size: 13px;
+      padding: 7px 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      backdrop-filter: blur(16px);
+      transition: background .2s ease, transform .15s ease, box-shadow .2s ease, border-color .2s ease;
+      font-family: "Gowun Dodum", sans-serif;
+    }
+
+    .year-chip:hover:not(.disabled):not(.active) {
+      transform: translateY(-1px);
+      background: rgba(0,0,0,.2);
+    }
+
+    .year-chip span.count {
+      font-size: 11px;
+      opacity: .9;
+    }
+
+    .year-chip.active {
+      background: var(--accent);
+      border-color: rgba(255,255,255,.75);
+      box-shadow: 0 0 16px rgba(241,100,46,.45);
+      transform: translateY(-1px);
+    }
+
+    .year-chip.disabled {
+      opacity: .45;
+      cursor: default;
+    }
+
+    .music-toggle {
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.45);
+      background: rgba(0,0,0,.18);
+      color: #fff;
+      font-size: 12px;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      backdrop-filter: blur(16px);
+      transition: background .2s ease, transform .1s ease, box-shadow .2s ease;
+      font-family: "Gowun Dodum", sans-serif;
+    }
+
+    .music-toggle:hover {
+      background: rgba(0,0,0,.28);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(0,0,0,.35);
+    }
+
+    /* LAYOUT: 3 COLUMNS */
+    .content {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.6fr) minmax(0, 1.6fr);
+      gap: 16px;
+      margin-top: 6px;
+      min-height: 520px;
+    }
+
+    @media (max-width: 1080px) {
+      .content {
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.3fr);
+        grid-template-areas:
+          "left center"
+          "right right";
+      }
+      .left-panel { grid-area: left; }
+      .center-panel { grid-area: center; }
+      .right-panel { grid-area: right; }
+    }
+
+    @media (max-width: 800px) {
+      .content {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "center"
+          "left"
+          "right";
+      }
+    }
+
+    /* PANELS */
+    .left-panel,
+    .center-panel,
+    .right-panel {
+      border-radius: var(--radius-lg);
+      background: rgba(7,5,25,.78);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(26px) saturate(160%);
+      padding: 14px 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    .left-panel {
+      background: radial-gradient(circle at 0 0, rgba(252,221,157,.16), transparent 60%),
+                  rgba(7,5,25,.8);
+    }
+
+    .center-panel {
+      background: radial-gradient(circle at 50% 0, rgba(163,181,101,.14), transparent 60%),
+                  rgba(7,5,25,.84);
+    }
+
+    .right-panel {
+      background: radial-gradient(circle at 100% 0, rgba(252,221,157,.18), transparent 60%),
+                  radial-gradient(circle at 0 100%, rgba(163,181,101,.18), transparent 60%),
+                  rgba(7,5,25,.9);
+    }
+
+    /* LEFT: FILTERS + LIST */
+    .filters-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .tag {
+      font-size: 11px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.27);
+      color: #fdfdfd;
+      background: rgba(0,0,0,.18);
+      cursor: pointer;
+      backdrop-filter: blur(14px);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: background .2s, transform .15s, box-shadow .2s, border-color .2s;
+      font-family: "Gowun Dodum", sans-serif;
+    }
+
+    .tag:hover:not(.disabled):not(.active) {
+      transform: translateY(-1px);
+      background: rgba(0,0,0,.25);
+    }
+
+    .tag span.icon {
+      font-size: 12px;
+    }
+
+    .tag.active {
+      background: var(--leaf);
+      border-color: rgba(255,255,255,.75);
+      box-shadow: 0 0 14px rgba(163,181,101,.55);
+      transform: translateY(-1px);
+      color: #20201c;
+    }
+
+    .tag.disabled {
+      opacity: .4;
+      cursor: default;
+    }
+
+    .place-list {
+      margin-top: 4px;
+      flex: 1;
+      min-height: 180px;
+      max-height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-right: 6px;
+    }
+
+    .place-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .place-list::-webkit-scrollbar-track {
+      background: rgba(0,0,0,.2);
+      border-radius: 3px;
+    }
+
+    .place-list::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,.3);
+      border-radius: 3px;
+    }
+
+    .place-card {
+      background: rgba(15,12,40,.75);
+      border-radius: 14px;
+      padding: 8px 10px;
+      margin-bottom: 6px;
+      border: 1px solid rgba(255,255,255,.08);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      transition: background .18s ease, transform .12s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+
+    .place-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 26px rgba(0,0,0,.55);
+      border-color: rgba(252,221,157,.55);
+    }
+
+    .place-card.active {
+      background: linear-gradient(135deg, rgba(252,221,157,.65), rgba(241,100,46,.75));
+      border-color: rgba(255,255,255,.85);
+      box-shadow: 0 12px 30px rgba(241,100,46,.7);
+      color: #201b2a;
+    }
+
+    .place-main {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .place-name {
+      font-size: 13px;
+      font-weight: 600;
+      font-family: "Nanum Myeongjo", "Gowun Dodum", "Noto Sans KR", serif;
+    }
+
+    .place-type {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .11em;
+      opacity: .85;
+      white-space: nowrap;
+    }
+
+    .place-meta {
+      font-size: 11px;
+      opacity: .85;
+    }
+
+    /* CENTER: MAP */
+    .map-shell {
+      position: relative;
+      border-radius: var(--radius-lg);
+      padding: 12px;
+      background: linear-gradient(145deg, rgba(0,0,0,0.35), rgba(0,0,0,0.75));
+      overflow: hidden;
+      min-height: 260px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .map-globe {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1/1;
+      border-radius: 999px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,.7);
+      border: 2px solid rgba(255,255,255,.15);
+    }
+
+    .map-globe .leaflet-container {
+      width: 100%;
+      height: 100%;
+      background: #1a1a2e;
+    }
+
+    .map-globe .leaflet-tile-pane {
+      filter: brightness(0.85) contrast(1.1) saturate(0.9);
+    }
+
+    .map-caption {
+      font-size: 11px;
+      color: rgba(253,248,226,.9);
+      background: rgba(0,0,0,.35);
+      padding: 4px 8px;
+      border-radius: 999px;
+      backdrop-filter: blur(10px);
+      align-self: flex-start;
+    }
+
+    .map-category-badge {
+      position: absolute;
+      right: 14px;
+      top: 12px;
+      font-size: 11px;
+      color: #201b2a;
+      background: rgba(253,248,226,.95);
+      padding: 5px 10px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.35);
+      z-index: 1000;
+      pointer-events: none;
+      font-family: "Gowun Dodum", sans-serif;
+    }
+
+    /* RIGHT: PHOTOS + MEMORY */
+    .memory-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .memory-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      margin: 0;
+      font-family: "Nanum Myeongjo", "Gowun Dodum", "Noto Sans KR", serif;
+    }
+
+    .memory-type-pill {
+      font-size: 11px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.25);
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-family: "Gowun Dodum", sans-serif;
+      white-space: nowrap;
+    }
+
+    .memory-sub {
+      font-size: 13px;
+      color: var(--sun);
+      margin: 2px 0 0;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 6px 10px;
+      margin-top: 6px;
+      font-size: 11.5px;
+      color: rgba(253,248,226,.9);
+    }
+
+    .meta-label {
+      opacity: .7;
+    }
+
+    .photo-section-title {
+      margin: 10px 0 4px;
+      font-size: 11px;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-family: "Nanum Myeongjo", "Gowun Dodum", "Noto Sans KR", serif;
+    }
+
+    .photo-grid {
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.25);
+      background: radial-gradient(circle at 0 0, rgba(255,255,255,.12), transparent 70%),
+                  rgba(9,7,30,.92);
+      padding: 10px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 12px;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+
+    .photo-grid::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .photo-grid::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,.35);
+      border-radius: 3px;
+    }
+
+    .photo-item {
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #16132a;
+      aspect-ratio: 4/3;
+      box-shadow: 0 8px 18px rgba(0,0,0,.55);
+    }
+
+    .photo-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform .25s ease, filter .25s ease;
+    }
+
+    .photo-item:hover img {
+      transform: scale(1.05);
+      filter: brightness(1.05);
+    }
+
+    .photo-empty {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 20px;
+      text-align: center;
+      grid-column: 1 / -1;
+    }
+
+    .photo-loading {
+      font-size: 11px;
+      color: var(--sun);
+      padding: 15px;
+      text-align: center;
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .photo-loading::before {
+      content: '';
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--sun);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .glass-grid {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 8px;
+    }
+
+    .glass-cell {
+      border-radius: 12px;
+      padding: 10px;
+      border: 1px solid rgba(255,255,255,.35);
+      background: linear-gradient(135deg, rgba(7,5,25,.85), rgba(7,5,25,.75));
+      backdrop-filter: blur(10px);
+      color: #FDF8E2;
+      font-size: 11.5px;
+      box-shadow: 0 8px 22px rgba(0,0,0,.35);
+      min-height: 56px;
+    }
+
+    .glass-cell h4 {
+      margin: 0 0 4px;
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #fff;
+      font-family: "Nanum Myeongjo", "Gowun Dodum", "Noto Sans KR", serif;
+      font-weight: 700;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
+
+    .glass-cell p {
+      margin: 0;
+      color: #FDF8E2;
+      font-family: "Gowun Dodum", sans-serif;
+      font-weight: 500;
+      line-height: 1.5;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    }
+
+    .memory-foot {
+      margin-top: auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: rgba(253,248,226,.75);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill-small {
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.22);
+      padding: 3px 8px;
+      background: rgba(0,0,0,.28);
+    }
+
+    /* Memory card fade animation */
+    .memory-content {
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Leaflet popup styling */
+    .custom-marker {
+      background: transparent;
+      border: none;
+    }
+
+    .leaflet-popup-content-wrapper {
+      background: rgba(7,5,25,.95);
+      color: var(--sand);
+      border-radius: 12px;
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,.2);
+    }
+
+    .leaflet-popup-content {
+      margin: 12px 14px;
+      font-family: "Gowun Dodum", sans-serif;
+      font-size: 12px;
+    }
+
+    .leaflet-popup-content b {
+      font-family: "Nanum Myeongjo", serif;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .leaflet-popup-tip {
+      background: rgba(7,5,25,.95);
+      border: 1px solid rgba(255,255,255,.2);
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 10px;
+      }
+      .app {
+        padding: 14px 16px;
+      }
+      .title-block h1 {
+        font-size: 18px;
+      }
+      .map-shell {
+        min-height: 220px;
+      }
+    }
+
+    /* Sparkles effect */
+    .sparkle {
+      position: fixed;
+      pointer-events: none;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #FCDD9D 0%, #F1642E 100%);
+      box-shadow: 0 0 6px #FCDD9D, 0 0 12px #F1642E;
+      z-index: 10000;
+      animation: sparkleFloat 1.2s ease-out forwards;
+    }
+
+    @keyframes sparkleFloat {
+      0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(var(--tx), var(--ty)) scale(0.3);
+      }
+    }
+
+    .sparkle-small {
+      width: 4px;
+      height: 4px;
+      box-shadow: 0 0 4px #FCDD9D, 0 0 8px #F1642E;
+    }
+
+    .sparkle-large {
+      width: 12px;
+      height: 12px;
+      box-shadow: 0 0 8px #FCDD9D, 0 0 16px #F1642E;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <div class="title-block">
+        <h1>Korea Visual Diary – My Korea Memory Map</h1>
+        <p>Places · Years · Feelings — a personal map-based memory project</p>
+      </div>
+      <div class="header-right">
+        <button class="music-toggle" id="musicToggle" type="button">
+          <span class="icon">🎧</span><span class="label">Play BTS instrumental</span>
+        </button>
+        <div class="year-filters" id="yearFilters"></div>
+      </div>
+    </header>
+
+    <main class="content">
+      <!-- LEFT: FILTERS + LIST -->
+      <section class="left-panel">
+        <div class="filters-row" id="typeFilters"></div>
+        <div class="place-list" id="placeList"></div>
+      </section>
+
+      <!-- CENTER: MAP -->
+      <section class="center-panel">
+        <div class="map-shell">
+          <div class="map-globe" id="map"></div>
+          <div class="map-category-badge" id="mapCategoryBadge">
+            <span class="icon">✨</span><span class="label">All places</span>
+          </div>
+          <div class="map-caption">
+            Hover markers to see names. Click a marker or list item to open the memory card on the right.
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: PHOTOS + MEMORY -->
+      <section class="right-panel" id="memoryPanel">
+        <div class="memory-header">
+          <div>
+            <h2 class="memory-title" id="memTitle">Choose a place</h2>
+            <p class="memory-sub" id="memSub">Select a pin on the map or a place from the list to open your memory card.</p>
+          </div>
+          <div class="memory-type-pill" id="memType">
+            <span class="icon">✨</span><span>TYPE</span>
+          </div>
+        </div>
+
+        <div class="meta-grid memory-content">
+          <div>
+            <div class="meta-label">City</div>
+            <div id="memCity">–</div>
+          </div>
+          <div>
+            <div class="meta-label">Year</div>
+            <div id="memYear">–</div>
+          </div>
+          <div style="grid-column:1 / -1;">
+            <div class="meta-label">Address</div>
+            <div id="memAddress">–</div>
+          </div>
+        </div>
+
+        <h4 class="photo-section-title">Photos from this place</h4>
+        <div class="photo-grid memory-content" id="photoGrid">
+          <div class="photo-empty">
+            No photos loaded yet. Choose a place on the left or center to see its gallery.
+          </div>
+        </div>
+
+        <div class="glass-grid memory-content">
+          <div class="glass-cell">
+            <h4>Memory</h4>
+            <p id="memNote">
+              Here I will write my personal memory or one-sentence insight about this place.
+            </p>
+          </div>
+          <div class="glass-cell">
+            <h4>Details &amp; Tips</h4>
+            <p id="memTip">
+              Food recommendations, best time to visit, who I went with, or any small detail I want to remember.
+            </p>
+          </div>
+        </div>
+
+        <div class="memory-foot">
+          <span>← Click another pin or list item to update this card.</span>
+          <span class="pill-small" id="memBadge">0 / 0 places</span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Background music -->
+  <audio id="bgMusic" loop src="assets/music/bts_instrumental.mp3"></audio>
+
+  <script>
+    /* ---------------------------
+       CATEGORY CONFIG (ENGLISH)
+       --------------------------- */
+    const CATEGORY_CONFIG = {
+      all:     { key: 'all',     label: 'All',         icon: '✨' },
+      cafe:    { key: 'cafe',    label: 'Café',        icon: '☕' },
+      food:    { key: 'food',    label: 'Food',        icon: '🍜' },
+      nature:  { key: 'nature',  label: 'Nature',      icon: '🌿' },
+      exp:     { key: 'exp',     label: 'Experiences', icon: '🎢' },
+      culture: { key: 'culture', label: 'Art & Culture', icon: '🖼️' },
+      study:   { key: 'study',   label: 'Study',       icon: '📚' },
+      daily:   { key: 'daily',   label: 'Daily life',  icon: '🏙️' },
+      market:  { key: 'market',  label: 'Market',      icon: '🛒' },
+      etc:     { key: 'etc',     label: 'Other',       icon: '⭐' }
+    };
+
+    /* ---------------------------
+       PLACES DATA 2022–2025
+       note = English memory
+       folder = subfolder under assets/images/{year}/
+       --------------------------- */
+    const places = [
+      // 2022
+      {
+        id: 1,
+        name: "공개정원",
+        type: "cafe",
+        city: "경기 부천",
+        address: "경기 부천시 원미구 장말로362번길 31 1층",
+        year: 2022,
+        note: `A cozy café near Bucheon University where Angelina and I often studied together.`,
+        folder: "공개정원"
+      },
+      {
+        id: 2,
+        name: "안성 내리",
+        type: "home",
+        city: "경기 안성",
+        address: "경기 안성시 대덕면 대학6길 4",
+        year: 2022,
+        note: `Farangiz’s home in Anseong, where I stayed for about half a month.`,
+        folder: "안성 내리"
+      },
+      {
+        id: 3,
+        name: "Everland",
+        type: "adventure",
+        city: "경기 용인",
+        address: "경기 용인시 처인구 포곡읍 에버랜드로 199",
+        year: 2022,
+        note: `A full day in one of Korea’s most famous theme parks.`,
+        folder: "Everland"
+      },
+      {
+        id: 4,
+        name: "Itaewon",
+        type: "cafe",
+        city: "서울",
+        address: "서울 용산구 이태원로 지하 177",
+        year: 2022,
+        note: `Visited different cafés, tried espresso for the first time, visited the Itaewon mosque and walked around Itaewon Class filming locations.`,
+        folder: "Itaewon"
+      },
+      {
+        id: 5,
+        name: "부천대학교",
+        type: "university",
+        city: "경기 부천",
+        address: "경기 부천시 원미구 신흥로56번길 25",
+        year: 2022,
+        note: `My first university in Korea — many early memories and first steps.`,
+        folder: "부천대학교"
+      },
+      {
+        id: 6,
+        name: "함박마을",
+        type: "home",
+        city: "인천",
+        address: "인천 연수구 연수1동",
+        year: 2022,
+        note: `A neighborhood in Incheon that became a temporary home.`,
+        folder: "함박마을"
+      },
+
+      // 2023
+      {
+        id: 7,
+        name: "띠아트",
+        type: "art",
+        city: "서울",
+        address: "서울 마포구 와우산로21길 20-11 지하1층",
+        year: 2023,
+        note: `An exhibition dedicated to The Little Prince watched together.`,
+        folder: "띠아트"
+      },
+      {
+        id: 8,
+        name: "원미산진달래축제",
+        type: "park",
+        city: "경기 부천",
+        address: "경기 부천시 원미구 춘의동 48-17",
+        year: 2023,
+        note: `Azalea festival on Wonmi Mountain, full of spring colors.`,
+        folder: "원미산진달래축제"
+      },
+      {
+        id: 9,
+        name: "경복궁",
+        type: "adventure",
+        city: "서울",
+        address: "서울 종로구 사직로 161 1층",
+        year: 2023,
+        note: `My first hanbok experience with Katya at Gyeongbokgung Palace.`,
+        folder: "경복궁"
+      },
+      {
+        id: 10,
+        name: "호호식당",
+        type: "food",
+        city: "서울",
+        address: "서울 성동구 서울숲4길 25",
+        year: 2023,
+        note: `Hongdae walks, shopping, a delicious lunch, and bread with salt and kaymak.`,
+        folder: "호호식당"
+      },
+      {
+        id: 11,
+        name: "오버딥",
+        type: "cafe",
+        city: "서울",
+        address: "서울 마포구 성미산로 149-8 2-3층, 옥탑",
+        year: 2023,
+        note: `Ramadan evening with Katya in a rooftop café.`,
+        folder: "오버딥"
+      },
+      {
+        id: 12,
+        name: "스타필드 수원",
+        type: "adventure",
+        city: "경기 수원",
+        address: "경기 수원시 장안구 수성로 175 지하1,2층, 1~8층",
+        year: 2023,
+        note: `Exploring a huge Starfield shopping mall in Suwon.`,
+        folder: "스타필드 수원"
+      },
+      {
+        id: 13,
+        name: "포레스트아웃팅스",
+        type: "cafe",
+        city: "인천",
+        address: "인천 연수구 청량로 145",
+        year: 2023,
+        note: `Green and cozy café moments in Incheon.`,
+        folder: "포레스트아웃팅스"
+      },
+      {
+        id: 14,
+        name: "RAINREPORT",
+        type: "cafe",
+        city: "서울",
+        address: "서울 용산구 소월로40길 85 1-2층",
+        year: 2023,
+        note: `A moody rainy-day café with a beautiful view.`,
+        folder: "RAINREPORT"
+      },
+      {
+        id: 15,
+        name: "HOOLIGAN COFFEE",
+        type: "food",
+        city: "서울",
+        address: "서울 마포구 와우산로29바길 11-5 1층",
+        year: 2023,
+        note: `Coffee, brunch, and a little bit of Hongdae energy.`,
+        folder: "HOOLIGAN COFFEE"
+      },
+      {
+        id: 16,
+        name: "London Bagel Museum Dosan",
+        type: "food",
+        city: "서울",
+        address: "서울 강남구 언주로168길 33 1,2층",
+        year: 2023,
+        note: `Bagels with a London mood in Dosan.`,
+        folder: "London Bagel Museum Dosan"
+      },
+      {
+        id: 17,
+        name: "안목해변",
+        type: "adventure",
+        city: "강릉",
+        address: "강원특별자치도 강릉시 창해로14번길 51-26",
+        year: 2023,
+        note: `A beach day in Gangneung with sea breeze and coffee streets.`,
+        folder: "안목해변"
+      },
+      {
+        id: 18,
+        name: "을왕리해수욕장",
+        type: "adventure",
+        city: "인천",
+        address: "인천 중구 을왕동 717-12",
+        year: 2023,
+        note: `Evening sea and sunset near Incheon at Eulwangri Beach.`,
+        folder: "을왕리해수욕장"
+      },
+      {
+        id: 19,
+        name: "Hangan Park",
+        type: "park",
+        city: "서울",
+        address: "서울 영등포구 여의도동",
+        year: 2023,
+        note: `Relaxing at Hangang Park with friends, snacks and city lights.`,
+        folder: "Hangan Park"
+      },
+      {
+        id: 20,
+        name: "Hongdae",
+        type: "adventure",
+        city: "서울",
+        address: "서울 마포구 양화로 지하 160",
+        year: 2023,
+        note: `Street performances, shops and night life in Hongdae.`,
+        folder: "Hongdae"
+      },
+      {
+        id: 21,
+        name: "Myeond-dong",
+        type: "adventure",
+        city: "서울",
+        address: "서울 중구 명동2가",
+        year: 2023,
+        note: `Beauty shops, food and neon signs in Myeong-dong.`,
+        folder: "Myeond-dong"
+      },
+      {
+        id: 22,
+        name: "Namsan Tower",
+        type: "adventure",
+        city: "서울",
+        address: "서울 용산구 용산동2가 산 1-3",
+        year: 2023,
+        note: `Classic Seoul view from Namsan Tower and love locks.`,
+        folder: "Namsan Tower"
+      },
+      {
+        id: 23,
+        name: "Starfield COEX",
+        type: "adventure",
+        city: "서울",
+        address: "서울 강남구 영동대로 513 지하1-지하2층, 1층",
+        year: 2023,
+        note: `The famous Starfield library and COEX area.`,
+        folder: "Starfield"
+      },
+
+      // 2024
+      {
+        id: 24,
+        name: "Cotejardin",
+        type: "food",
+        city: "서울",
+        address: "서울 용산구 보광로 122-1",
+        year: 2024,
+        note: `A warm meal and cozy atmosphere in Itaewon area.`,
+        folder: "Cotejardin"
+      },
+      {
+        id: 25,
+        name: "양키스버거앤피자",
+        type: "food",
+        city: "서울",
+        address: "서울 영등포구 도림로 434-1 1층",
+        year: 2024,
+        note: `Katya’s birthday and farewell party – burgers, pizza and lots of laughter.`,
+        folder: "양키스버거앤피자"
+      },
+      {
+        id: 26,
+        name: "Dotori Garden",
+        type: "cafe",
+        city: "서울",
+        address: "서울 종로구 계동길 19-8",
+        year: 2024,
+        note: `First walk with Jasmine and Yulduz in a very aesthetic café.`,
+        folder: "Dotori Garden"
+      },
+      {
+        id: 27,
+        name: "가평 파크",
+        type: "park",
+        city: "경기 가평",
+        address: "경기 가평군 가평읍 대곡리 27-14",
+        year: 2024,
+        note: `Flower festival in Gapyeong, full of colors and photo spots.`,
+        folder: "가평 파크"
+      },
+      {
+        id: 28,
+        name: "그림제작소",
+        type: "art",
+        city: "서울",
+        address: "서울 송파구 석촌호수로 290 성우빌딩 3층 301호",
+        year: 2024,
+        note: `Painting our own artworks with Nastya, Jasmine and Yulduz.`,
+        folder: "그림제작소"
+      },
+      {
+        id: 29,
+        name: "part room",
+        type: "adventure",
+        city: "인천",
+        address: "인천 미추홀구 매소홀로 262",
+        year: 2024,
+        note: `Angelina’s 23rd birthday: everyone prepared a presentation about their year and dressed as a meme — I was the dancing Arabic cat.`,
+        folder: "part room"
+      },
+      {
+        id: 30,
+        name: "외도",
+        type: "adventure",
+        city: "거제도",
+        address: "외도팡팡 외도유람선실시간예약센터",
+        year: 2024,
+        note: `Two-day trip to Geoje with friends, one night in a pension and a dreamy visit to Oedo Island.`,
+        folder: "외도"
+      },
+      {
+        id: 31,
+        name: "Steak",
+        type: "food",
+        city: "서울",
+        address: "서울 마포구 어울마당로 122-1 2층",
+        year: 2024,
+        note: `My 23rd birthday dinner with my favorite friends.`,
+        folder: "Steak"
+      },
+      {
+        id: 32,
+        name: "Golden Bei Home",
+        type: "home",
+        city: "서울",
+        address: "서울 성북구 화랑로 112",
+        year: 2024,
+        note: `One of the best apartments I lived in: with two Chinese roommates Ovidon and Yunchon, plus cats Pompom and Wolmi.`,
+        folder: "Golden Bei Home"
+      },
+      {
+        id: 33,
+        name: "Koriko Cafe",
+        type: "cafe",
+        city: "서울",
+        address: "서울 마포구 성미산로 165-7 지하1층, 1~2층",
+        year: 2024,
+        note: `A Ghibli-style café moment in Seoul.`,
+        folder: "Koriko Cafe"
+      },
+      {
+        id: 34,
+        name: "Nami Island",
+        type: "adventure",
+        city: "경기 가평",
+        address: "경기 가평군 가평읍 북한강변로 1061 1층",
+        year: 2024,
+        note: `A classic Nami Island day trip with riverside views and trees.`,
+        folder: "Nami Island"
+      },
+      {
+        id: 35,
+        name: "Incheon Terminal",
+        type: "adventure",
+        city: "인천",
+        address: "인천 미추홀구 연남로 35",
+        year: 2024,
+        note: `Departures and arrivals – small airport/travel memories.`,
+        folder: "Incheon Terminal"
+      },
+      {
+        id: 36,
+        name: "Wolmido",
+        type: "adventure",
+        city: "인천",
+        address: "인천 중구 북성동1가 125",
+        year: 2024,
+        note: `Seaside park, rides and night lights in Wolmido.`,
+        folder: "Wolmido"
+      },
+      {
+        id: 37,
+        name: "Lotte World",
+        type: "adventure",
+        city: "서울",
+        address: "서울 송파구 올림픽로 240",
+        year: 2024,
+        note: `Theme park day in Lotte World with indoor and outdoor rides.`,
+        folder: "Lotte World"
+      },
+      {
+        id: 38,
+        name: "성수",
+        type: "adventure",
+        city: "서울",
+        address: "서울 성동구 아차산로 100",
+        year: 2024,
+        note: `Trendy cafés, galleries and walks around Seongsu-dong.`,
+        folder: "성수"
+      },
+      {
+        id: 39,
+        name: "광화문",
+        type: "adventure",
+        city: "서울",
+        address: "서울 종로구 사직로 161",
+        year: 2024,
+        note: `An evening around Gwanghwamun, history and city center.`,
+        folder: "광화문"
+      },
+
+      // 2025
+      {
+        id: 40,
+        name: "Never Ending Pottery Studio",
+        type: "art cafe",
+        city: "서울",
+        address: "서울 양천구 가로공원로 136",
+        year: 2025,
+        note: `First cultural experience of the “30 Days in Seoul” program — pottery time.`,
+        folder: "Never Ending Pottery Studio"
+      },
+      {
+        id: 41,
+        name: "세븐스플로어 2호점",
+        type: "food",
+        city: "인천",
+        address: "인천 부평구 부평대로 15 부평서파빌딩 7층",
+        year: 2025,
+        note: `Time with Angelina and Nastya in a pretty restaurant.`,
+        folder: "세븐스플로어 2호점"
+      },
+      {
+        id: 42,
+        name: "미쁘동",
+        type: "food",
+        city: "서울",
+        address: "서울 마포구 동교로38길 33-21 2층",
+        year: 2025,
+        note: `March 8th celebration and Japanese food in Hongdae.`,
+        folder: "미쁘동"
+      },
+      {
+        id: 43,
+        name: "도봉산",
+        type: "nature",
+        city: "서울",
+        address: "서울 도봉구 도봉동 산 31",
+        year: 2025,
+        note: `Hiking day at Dobongsan and fresh mountain air.`,
+        folder: "도봉산"
+      },
+      {
+        id: 44,
+        name: "동림캠프",
+        type: "adventure",
+        city: "경기 가평",
+        address: "경기 가평군 청평면 모꼬지로 22-9",
+        year: 2025,
+        note: `Graduate class MT with games, campfire and late-night talks.`,
+        folder: "동림캠프"
+      },
+      {
+        id: 45,
+        name: "연천역",
+        type: "adventure",
+        city: "경기 연천",
+        address: "경기 연천군 연천읍 연천로 275-1",
+        year: 2025,
+        note: `Trip with SeoulTech Global Center to the closed Yeoncheon Station.`,
+        folder: "연천역"
+      },
+      {
+        id: 46,
+        name: "감천문화마을",
+        type: "adventure",
+        city: "부산",
+        address: "부산 사하구 감천동 1-17",
+        year: 2025,
+        note: `First Busan trip and pastel-colored Gamcheon Culture Village.`,
+        folder: "감천문화마을"
+      },
+      {
+        id: 47,
+        name: "해운대해수욕장",
+        type: "beach",
+        city: "부산",
+        address: "부산 해운대구 우동",
+        year: 2025,
+        note: `Busan seaside walk along Haeundae Beach.`,
+        folder: "해운대해수욕장"
+      },
+      {
+        id: 48,
+        name: "곤지암리조트 스키장",
+        type: "adventure",
+        city: "경기 광주",
+        address: "경기 광주시 도척면 도척윗로 278",
+        year: 2025,
+        note: `News1 camp ski experience at Gonjiam Resort.`,
+        folder: "곤지암리조트 스키장"
+      },
+      {
+        id: 49,
+        name: "뮤지엄산",
+        type: "art",
+        city: "강원 원주",
+        address: "강원특별자치도 원주시 지정면 오크밸리2길 260",
+        year: 2025,
+        note: `Fun Korea one-day tour — architecture, art and nature at Museum SAN.`,
+        folder: "뮤지엄산"
+      },
+      {
+        id: 50,
+        name: "피노키오숲",
+        type: "nature",
+        city: "강원 원주",
+        address: "강원특별자치도 원주시 신림면 소야1길 72 1층",
+        year: 2025,
+        note: `“Pinocchio Forest” stop during the same tour — dreamy wooden details.`,
+        folder: "피노키오숲"
+      },
+      {
+        id: 51,
+        name: "모나용평 스키장",
+        type: "adventure",
+        city: "강원 원주",
+        address: "강원특별자치도 평창군 대관령면 올림픽로 715",
+        year: 2025,
+        note: `Snowy day at Mona Yongpyong ski resort.`,
+        folder: "모나용평 스키장"
+      },
+      {
+        id: 52,
+        name: "무섬마을",
+        type: "nature",
+        city: "경북 영주",
+        address: "경북 영주시 문수면 무섬로234번길 31-12",
+        year: 2025,
+        note: `Korea Travelmate one-day trip to a traditional riverside village.`,
+        folder: "무섬마을"
+      },
+      {
+        id: 53,
+        name: "부석사",
+        type: "nature",
+        city: "경북 영주",
+        address: "경북 영주시 부석면 부석사로 345",
+        year: 2025,
+        note: `Visit to Buseoksa temple — peaceful, with a small “apple hehe” memory.`,
+        folder: "부석사"
+      },
+      {
+        id: 54,
+        name: "용설2호지",
+        type: "adventure",
+        city: "경기 안성",
+        address: "경기 안성시 죽산면 용설호수길 187",
+        year: 2025,
+        note: `Kimchi-making experience near the lake in Anseong.`,
+        folder: "용설2호지"
+      },
+      {
+        id: 55,
+        name: "의림지",
+        type: "nature",
+        city: "충북 제천",
+        address: "충북 제천시 모산동 241",
+        year: 2025,
+        note: `Trip to visit a friend who gave birth in Korea, with a stop at Uirimji.`,
+        folder: "의림지"
+      },
+      {
+        id: 56,
+        name: "오이도해변",
+        type: "nature",
+        city: "경기 시흥",
+        address: "경기 시흥시 정왕동 2202-4",
+        year: 2025,
+        note: `Korea Travelmate “Autumn in Two Wheels” along Oido beach.`,
+        folder: "오이도해변"
+      },
+      {
+        id: 57,
+        name: "솔다박체험휴양마을",
+        type: "adventure",
+        city: "전북 무주",
+        address: "전북특별자치도 무주군 안성면 장무로 1637 1층",
+        year: 2025,
+        note: `Korea Travelmate autumn trip — staying in a rural experience village.`,
+        folder: "솔다박체험휴양마을"
+      },
+      {
+        id: 58,
+        name: "머루와인동굴",
+        type: "adventure",
+        city: "전북 무주",
+        address: "전북특별자치도 무주군 적상면 산성로 359",
+        year: 2025,
+        note: `Wine cave visit with atmospheric underground lights.`,
+        folder: "머루와인동굴"
+      },
+      {
+        id: 59,
+        name: "보은사",
+        type: "nature",
+        city: "충북 보은",
+        address: "충북 보은군 보은읍 성주1길 104",
+        year: 2025,
+        note: `Temple and quiet village feeling in Boeun.`,
+        folder: "보은사"
+      },
+      {
+        id: 60,
+        name: "월류정",
+        type: "nature",
+        city: "충북 영동",
+        address: "충북 영동군 황간면 원촌리 산 20-1",
+        year: 2025,
+        note: `Picturesque pavilion and river view at Wolryujeong.`,
+        folder: "월류정"
+      },
+      {
+        id: 61,
+        name: "안동하회마을",
+        type: "nature",
+        city: "경북 안동",
+        address: "경북 안동시 풍천면 하회리 1176-1",
+        year: 2025,
+        note: `Nongshim trip to UNESCO Hahoe Folk Village.`,
+        folder: "안동하회마을"
+      },
+      {
+        id: 62,
+        name: "호계서원",
+        type: "nature",
+        city: "경북 안동",
+        address: "경북 안동시 도산면 퇴계로 2001-36",
+        year: 2025,
+        note: `Confucian academy with calm, scholarly energy.`,
+        folder: "호계서원"
+      },
+      {
+        id: 63,
+        name: "도산서원",
+        type: "nature",
+        city: "경북 안동",
+        address: "경북 안동시 도산면 도산서원길 154",
+        year: 2025,
+        note: `Another historic Confucian academy in Andong, surrounded by nature.`,
+        folder: "도산서원"
+      },
+      {
+        id: 64,
+        name: "월영보트",
+        type: "nature",
+        city: "경북 안동",
+        address: "경북 안동시 상아동 569",
+        year: 2025,
+        note: `Moonlight bridge and boat – romantic Andong night view.`,
+        folder: "월영보트"
+      },
+      {
+        id: 65,
+        name: "안동국제컨벤션센터&세계유교문화박물관",
+        type: "adventure",
+        city: "경북 안동",
+        address: "경북 안동시 도산면 월천길 301",
+        year: 2025,
+        note: `Festival at the Andong International Convention Center and World Confucian Culture Museum.`,
+        folder: "안동국제컨벤션센터&세계유교문화박물관"
+      },
+      {
+        id: 66,
+        name: "yaniyan art home",
+        type: "art",
+        city: "서울",
+        address: "서울 강남구 압구정로14길 39",
+        year: 2025,
+        note: `Last cultural experience of the “30 Days in Seoul” program – cozy art home.`,
+        folder: "yaniyan art home"
+      },
+      {
+        id: 67,
+        name: "디뮤지엄",
+        type: "art",
+        city: "서울",
+        address: "서울 성동구 왕십리로 83-21 1-4층",
+        year: 2025,
+        note: `Off-campus art class with professor and classmates at D Museum.`,
+        folder: "디뮤지엄"
+      },
+      {
+        id: 68,
+        name: "마이아트뮤지엄 원그로브점",
+        type: "art",
+        city: "서울",
+        address: "서울 강서구 공항대로 165 원그로브 C동 2층 W213호",
+        year: 2025,
+        note: `Alphonse Mucha exhibition at My Art Museum.`,
+        folder: "마이아트뮤지엄 원그로브점"
+      },
+      {
+        id: 69,
+        name: "국립현대미술관",
+        type: "art",
+        city: "서울",
+        address: "서울 종로구 삼청로 30",
+        year: 2025,
+        note: `Visit to MMCA Seoul with modern and contemporary art.`,
+        folder: "국립현대미술관"
+      },
+      {
+        id: 70,
+        name: "서울숲",
+        type: "nature",
+        city: "서울",
+        address: "서울 성동구 성수동1가 678-1",
+        year: 2025,
+        note: `Walks in Seoul Forest – deers, nature and cafés around.`,
+        folder: "서울숲"
+      },
+      {
+        id: 71,
+        name: "Shinseage",
+        type: "adventure",
+        city: "서울",
+        address: "서울 중구 소공로 63",
+        year: 2025,
+        note: `Shinsegae Department Store – Christmas lights, food market and luxury vibes.`,
+        folder: "Shinseage"
+      },
+      {
+        id: 72,
+        name: "창덕궁",
+        type: "adventure",
+        city: "서울",
+        address: "서울 종로구 율곡로 99",
+        year: 2025,
+        note: `Visit to Changdeokgung palace, including the secret garden.`,
+        folder: "창덕궁"
+      },
+      {
+        id: 73,
+        name: "광안리해수욕장",
+        type: "beach",
+        city: "부산",
+        address: "부산 수영구 광안해변로 219",
+        year: 2025,
+        note: `Night view of the Gwangan Bridge and city skyline at Gwangalli Beach.`,
+        folder: "광안리해수욕장"
+      }
+    ];
+
+    // Map type string to category key
+    function mapTypeToCategoryKey(type) {
+      const t = String(type || '').toLowerCase();
+      if (t === 'cafe' || t === 'art cafe') return 'cafe';
+      if (t === 'food') return 'food';
+      if (t === 'nature' || t === 'beach' || t === 'park') return 'nature';
+      if (t === 'adventure' || t === 'cinema') return 'exp';
+      if (t === 'art') return 'culture';
+      if (t === 'study' || t === 'university') return 'study';
+      if (t === 'grocery store' || t === 'market') return 'market';
+      if (t === 'home' || t === 'hospital') return 'daily';
+      return 'etc';
+    }
+
+    // Add category and coords to each place
+    places.forEach(p => {
+      p.category = mapTypeToCategoryKey(p.type);
+      p.coords = null;
+    });
+
+    /* ---------------------------
+       DOM REFERENCES
+       --------------------------- */
+    const yearFiltersEl = document.getElementById('yearFilters');
+    const typeFiltersEl = document.getElementById('typeFilters');
+    const placeListEl = document.getElementById('placeList');
+    const mapCategoryBadge = document.getElementById('mapCategoryBadge');
+    const photoGrid = document.getElementById('photoGrid');
+
+    const memTitle = document.getElementById('memTitle');
+    const memSub = document.getElementById('memSub');
+    const memType = document.getElementById('memType');
+    const memCity = document.getElementById('memCity');
+    const memYear = document.getElementById('memYear');
+    const memAddress = document.getElementById('memAddress');
+    const memNote = document.getElementById('memNote');
+    const memTip = document.getElementById('memTip');
+    const memBadge = document.getElementById('memBadge');
+
+    const musicToggle = document.getElementById('musicToggle');
+    const bgMusic = document.getElementById('bgMusic');
+
+    let currentYear = 'all';
+    let currentCategory = 'all';
+    let activeId = null;
+
+    /* ---------------------------
+       SPARKLES EFFECT
+       --------------------------- */
+    function createSparkles(event, count = 15) {
+      const x = event.clientX || event.pageX;
+      const y = event.clientY || event.pageY;
+      
+      for (let i = 0; i < count; i++) {
+        const sparkle = document.createElement('div');
+        sparkle.className = 'sparkle';
+        
+        // Random size variation
+        if (Math.random() > 0.7) {
+          sparkle.classList.add('sparkle-large');
+        } else if (Math.random() > 0.5) {
+          sparkle.classList.add('sparkle-small');
+        }
+        
+        // Random direction and distance
+        const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+        const distance = 60 + Math.random() * 80;
+        const tx = Math.cos(angle) * distance;
+        const ty = Math.sin(angle) * distance;
+        
+        sparkle.style.left = x + 'px';
+        sparkle.style.top = y + 'px';
+        sparkle.style.setProperty('--tx', tx + 'px');
+        sparkle.style.setProperty('--ty', ty + 'px');
+        
+        // Random delay for more natural effect
+        sparkle.style.animationDelay = (Math.random() * 0.2) + 's';
+        
+        document.body.appendChild(sparkle);
+        
+        // Remove after animation
+        setTimeout(() => {
+          sparkle.remove();
+        }, 1200);
+      }
+    }
+
+    /* ---------------------------
+       MUSIC TOGGLE
+       --------------------------- */
+    let isPlaying = false;
+    musicToggle.addEventListener('click', async () => {
+      try {
+        if (!isPlaying) {
+          await bgMusic.play();
+          isPlaying = true;
+          musicToggle.querySelector('.label').textContent = 'Pause music';
+          musicToggle.querySelector('.icon').textContent = '⏸';
+        } else {
+          bgMusic.pause();
+          isPlaying = false;
+          musicToggle.querySelector('.label').textContent = 'Play BTS instrumental';
+          musicToggle.querySelector('.icon').textContent = '🎧';
+        }
+      } catch (e) {
+        console.warn('Music play error:', e);
+      }
+    });
+
+    /* ---------------------------
+       GEOCODING WITH CACHE
+       --------------------------- */
+    const GEOCODE_CACHE_KEY = 'korea_diary_geocode_cache';
+    const CACHE_EXPIRY_DAYS = 30;
+
+    function getGeocodeCache() {
+      try {
+        const cached = localStorage.getItem(GEOCODE_CACHE_KEY);
+        if (!cached) return {};
+        const data = JSON.parse(cached);
+        const now = Date.now();
+        const filtered = {};
+        for (const [key, value] of Object.entries(data)) {
+          if (now - value.timestamp < CACHE_EXPIRY_DAYS * 24 * 60 * 60 * 1000) {
+            filtered[key] = value;
+          }
+        }
+        return filtered;
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function setGeocodeCache(address, coords) {
+      try {
+        const cache = getGeocodeCache();
+        cache[address] = { coords, timestamp: Date.now() };
+        localStorage.setItem(GEOCODE_CACHE_KEY, JSON.stringify(cache));
+      } catch (e) {
+        // Ignore storage errors
+      }
+    }
+
+    async function geocodePlace(place) {
+      if (place.coords) return place.coords;
+      const cache = getGeocodeCache();
+      const cached = cache[place.address];
+      if (cached) {
+        place.coords = cached.coords;
+        return place.coords;
+      }
+      const query = place.address || (place.city + ' ' + place.name);
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=kr&limit=1`;
+      try {
+        const res = await fetch(url, {
+          headers: {
+            "Accept": "application/json",
+            "User-Agent": "KoreaVisualDiary/1.0"
+          }
+        });
+        const data = await res.json();
+        if (data && data[0]) {
+          const lat = parseFloat(data[0].lat);
+          const lon = parseFloat(data[0].lon);
+          const coords = [lat, lon];
+          place.coords = coords;
+          setGeocodeCache(place.address, coords);
+          return coords;
+        }
+      } catch (e) {
+        console.warn('Geocoding error for', place.name, e);
+      }
+      return null;
+    }
+
+    /* ---------------------------
+       CUSTOM MARKER ICONS
+       --------------------------- */
+    function createMarkerIcon(category) {
+      const config = CATEGORY_CONFIG[category] || CATEGORY_CONFIG.etc;
+      const iconHtml = `
+        <div style="
+          width: 32px;
+          height: 32px;
+          background: rgba(252,221,157,0.95);
+          border: 2px solid rgba(241,100,46,0.8);
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        ">
+          <span style="
+            transform: rotate(45deg);
+            font-size: 16px;
+            display: block;
+          ">${config.icon}</span>
+        </div>
+      `;
+      return L.divIcon({
+        html: iconHtml,
+        className: 'custom-marker',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32]
+      });
+    }
+
+    /* ---------------------------
+       LEAFLET MAP INIT
+       --------------------------- */
+    let map;
+    let markersLayer;
+
+    function initMap() {
+      if (map) return;
+      const southWest = L.latLng(33.0, 124.0);
+      const northEast = L.latLng(38.8, 132.0);
+      const bounds = L.latLngBounds(southWest, northEast);
+
+      map = L.map('map', {
+        zoomControl: false,
+        attributionControl: false,
+        maxBounds: bounds,
+        maxBoundsViscosity: 1.0,
+        minZoom: 6,
+        maxZoom: 15
+      }).setView([36.3, 127.8], 7);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: ''
+      }).addTo(map);
+
+      markersLayer = L.layerGroup().addTo(map);
+
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 200);
+    }
+
+    /* ---------------------------
+       HIGHLIGHT PLACE CARD
+       --------------------------- */
+    function highlightPlaceCard(id) {
+      const cards = placeListEl.querySelectorAll('.place-card');
+      cards.forEach(card => {
+        if (Number(card.dataset.id) === id) {
+          card.classList.add('active');
+          card.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        } else {
+          card.classList.remove('active');
+        }
+      });
+    }
+
+    /* ---------------------------
+       UPDATE MAP MARKERS
+       --------------------------- */
+    async function updateMapMarkers(filteredPlaces) {
+      if (!map) return;
+      markersLayer.clearLayers();
+      if (filteredPlaces.length === 0) return;
+
+      const bounds = [];
+
+      for (const p of filteredPlaces) {
+        const coords = await geocodePlace(p);
+        if (!coords) continue;
+
+        const icon = createMarkerIcon(p.category);
+        const marker = L.marker(coords, { icon }).addTo(markersLayer);
+
+        marker.bindPopup(`
+          <b>${p.name}</b><br/>
+          ${p.city}<br/>
+          ${p.address}
+        `);
+
+        marker.bindTooltip(p.name, {
+          direction: 'top',
+          offset: [0, -20]
+        });
+
+        marker.on('click', (e) => {
+          // Get click position from map event
+          const containerPoint = map.mouseEventToContainerPoint(e.originalEvent || e);
+          const sparkleEvent = {
+            clientX: containerPoint.x + map.getContainer().getBoundingClientRect().left,
+            clientY: containerPoint.y + map.getContainer().getBoundingClientRect().top
+          };
+          createSparkles(sparkleEvent, 20);
+          activeId = p.id;
+          updateMemoryCard(p, filteredPlaces.length);
+          highlightPlaceCard(p.id);
+          map.setView(coords, Math.max(map.getZoom(), 11), {
+            animate: true,
+            duration: 0.5
+          });
+        });
+
+        bounds.push(coords);
+      }
+
+      if (bounds.length > 0) {
+        try {
+          map.fitBounds(bounds, { padding: [30, 30], maxZoom: 9 });
+        } catch (e) {
+          map.setView([36.3, 127.8], 7);
+        }
+      } else {
+        map.setView([36.3, 127.8], 7);
+      }
+    }
+
+    /* ---------------------------
+       YEAR FILTERS
+       --------------------------- */
+    function getYearsWithCounts() {
+      const counts = {};
+      places.forEach(p => {
+        counts[p.year] = (counts[p.year] || 0) + 1;
+      });
+      return counts;
+    }
+
+    function buildYearFilters() {
+      const counts = getYearsWithCounts();
+      const years = [2022, 2023, 2024, 2025];
+      yearFiltersEl.innerHTML = '';
+
+      // Add "All" button first
+      const allBtn = document.createElement('button');
+      allBtn.type = 'button';
+      allBtn.className = 'year-chip';
+      if (currentYear === 'all') allBtn.classList.add('active');
+      const totalCount = places.length;
+      allBtn.innerHTML = `All <span class="count">(${totalCount})</span>`;
+      allBtn.addEventListener('click', () => {
+        currentYear = 'all';
+        activeId = null;
+        currentCategory = 'all';
+        buildYearFilters();
+        buildTypeFilters();
+        renderPlaces();
+        resetMemoryCard();
+        updateMapCategoryBadge();
+      });
+      yearFiltersEl.appendChild(allBtn);
+
+      // Add year buttons
+      years.forEach(y => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'year-chip';
+        if (!counts[y]) btn.classList.add('disabled');
+        if (y === currentYear) btn.classList.add('active');
+        btn.dataset.year = y;
+        btn.innerHTML = `${y} <span class="count">(${counts[y] || 0})</span>`;
+        btn.addEventListener('click', () => {
+          if (!counts[y]) return;
+          currentYear = y;
+          activeId = null;
+          currentCategory = 'all';
+          buildYearFilters();
+          buildTypeFilters();
+          renderPlaces();
+          resetMemoryCard();
+          updateMapCategoryBadge();
+        });
+        yearFiltersEl.appendChild(btn);
+      });
+    }
+
+    /* ---------------------------
+       CATEGORY FILTERS
+       --------------------------- */
+    function getCategoryCountsForYear(year) {
+      const counts = {};
+      places.forEach(p => {
+        if (year !== 'all' && p.year !== year) return;
+        const c = p.category || 'etc';
+        counts[c] = (counts[c] || 0) + 1;
+      });
+      return counts;
+    }
+
+    function buildTypeFilters() {
+      const counts = getCategoryCountsForYear(currentYear);
+      typeFiltersEl.innerHTML = '';
+
+      const allConfig = CATEGORY_CONFIG.all;
+      const allBtn = document.createElement('button');
+      allBtn.type = 'button';
+      allBtn.className = 'tag' + (currentCategory === 'all' ? ' active' : '');
+      allBtn.innerHTML = `<span class="icon">${allConfig.icon}</span><span>${allConfig.label}</span>`;
+      allBtn.addEventListener('click', () => {
+        currentCategory = 'all';
+        activeId = null;
+        buildTypeFilters();
+        renderPlaces();
+        resetMemoryCard();
+        updateMapCategoryBadge();
+      });
+      typeFiltersEl.appendChild(allBtn);
+
+      const keysInOrder = ['cafe', 'food', 'nature', 'exp', 'culture', 'study', 'daily', 'market', 'etc'];
+      keysInOrder.forEach(key => {
+        const cfg = CATEGORY_CONFIG[key];
+        const count = counts[key] || 0;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'tag';
+        if (currentCategory === key) btn.classList.add('active');
+        if (!count) btn.classList.add('disabled');
+        btn.innerHTML = `<span class="icon">${cfg.icon}</span><span>${cfg.label}${count ? ` (${count})` : ''}</span>`;
+        btn.addEventListener('click', () => {
+          if (!count) return;
+          currentCategory = key;
+          activeId = null;
+          buildTypeFilters();
+          renderPlaces();
+          resetMemoryCard();
+          updateMapCategoryBadge();
+        });
+        typeFiltersEl.appendChild(btn);
+      });
+    }
+
+    /* ---------------------------
+       PHOTO GALLERY
+       assets/images/{year}/{folder}/1.jpg,2.jpg...
+       --------------------------- */
+    // Helper function to encode path with spaces for URL
+    function encodeImagePath(path) {
+      return path.split('/').map(part => encodeURIComponent(part)).join('/');
+    }
+
+    // Track current place to prevent photo mixing
+    let currentPlaceId = null;
+
+    function loadGalleryForPlace(place) {
+      // Set current place ID to prevent mixing photos
+      currentPlaceId = place.id;
+      photoGrid.innerHTML = '';
+      
+      // Show loading indicator
+      const loadingDiv = document.createElement('div');
+      loadingDiv.className = 'photo-loading';
+      loadingDiv.textContent = 'Loading photos...';
+      photoGrid.appendChild(loadingDiv);
+      
+      const basePath = `assets images/${place.year}/${place.folder}/`;
+      let loaded = 0;
+      const imageExtensions = ['jpg', 'jpeg', 'JPG', 'JPEG', 'png', 'PNG', 'DNG'];
+      const maxAttempts = 150;
+      
+      // Common file name patterns to try
+      const patterns = [
+        // Pattern: photo_*.jpg (most common) - try wider range
+        (i) => `photo_5316569987013087${String(830 + i).padStart(3, '0')}_y.jpg`,
+        (i) => `photo_5316569987013087${String(580 + i).padStart(3, '0')}_y.jpg`,
+        (i) => `photo_5319268652404118${String(318 + i).padStart(3, '0')}_y.jpg`,
+        (i) => `photo_5316569987013087${String(490 + i).padStart(3, '0')}_y.jpg`,
+        (i) => `photo_5316569987013087${String(590 + i).padStart(3, '0')}_y.jpg`,
+        (i) => `photo_5316569987013087${String(750 + i).padStart(3, '0')}_y.jpg`,
+        (i) => `photo_5316569987013087${String(495 + i).padStart(3, '0')}_y.jpg`,
+        (i) => `photo_5316569987013087${String(502 + i).padStart(3, '0')}_y.jpg`,
+        (i) => `photo_5316569987013087${String(504 + i).padStart(3, '0')}_y.jpg`,
+        (i) => `photo_5316569987013087${String(505 + i).padStart(3, '0')}_y.jpg`,
+        (i) => `photo_5316569987013087${String(506 + i).padStart(3, '0')}_y.jpg`,
+        (i) => `photo_5316569987013087${String(508 + i).padStart(3, '0')}_y.jpg`,
+        (i) => `photo_5319268652404118${String(321 + i).padStart(3, '0')}_y.jpg`,
+        (i) => `photo_5319268652404118${String(322 + i).padStart(3, '0')}_y.jpg`,
+        (i) => `photo_5319268652404118${String(318 + i).padStart(3, '0')}_x.jpg`,
+        // Pattern: IMG_*.PNG
+        (i) => `IMG_${String(1960 + i).padStart(4, '0')}.PNG`,
+        (i) => `IMG_${String(1970 + i).padStart(4, '0')}.PNG`,
+        (i) => `IMG_${String(1980 + i).padStart(4, '0')}.PNG`,
+        (i) => `IMG_${String(1990 + i).padStart(4, '0')}.PNG`,
+        (i) => `IMG_${String(2000 + i).padStart(4, '0')}.PNG`,
+        (i) => `IMG_${String(2010 + i).padStart(4, '0')}.PNG`,
+        (i) => `IMG_${String(2020 + i).padStart(4, '0')}.PNG`,
+        (i) => `IMG_${String(2030 + i).padStart(4, '0')}.PNG`,
+        (i) => `IMG_${String(2060 + i).padStart(4, '0')}.PNG`,
+        (i) => `IMG_${String(2070 + i).padStart(4, '0')}.PNG`,
+        (i) => `IMG_${String(2080 + i).padStart(4, '0')}.PNG`,
+        (i) => `IMG_${String(2090 + i).padStart(4, '0')}.PNG`,
+        (i) => `IMG_${String(2290 + i).padStart(4, '0')}.PNG`,
+        (i) => `IMG_${String(2300 + i).padStart(4, '0')}.PNG`,
+        (i) => `IMG_${String(2310 + i).padStart(4, '0')}.PNG`,
+        // Pattern: IMG_*.JPG
+        (i) => `IMG_${String(1960 + i).padStart(4, '0')}.JPG`,
+        (i) => `IMG_${String(1970 + i).padStart(4, '0')}.JPG`,
+        (i) => `IMG_${String(1980 + i).padStart(4, '0')}.JPG`,
+        (i) => `IMG_${String(1990 + i).padStart(4, '0')}.JPG`,
+        (i) => `IMG_${String(2000 + i).padStart(4, '0')}.JPG`,
+        (i) => `IMG_${String(2010 + i).padStart(4, '0')}.JPG`,
+        (i) => `IMG_${String(2020 + i).padStart(4, '0')}.JPG`,
+        (i) => `IMG_${String(2030 + i).padStart(4, '0')}.JPG`,
+        (i) => `IMG_${String(2060 + i).padStart(4, '0')}.JPG`,
+        (i) => `IMG_${String(2070 + i).padStart(4, '0')}.JPG`,
+        (i) => `IMG_${String(2080 + i).padStart(4, '0')}.JPG`,
+        (i) => `IMG_${String(2090 + i).padStart(4, '0')}.JPG`,
+        (i) => `IMG_${String(2290 + i).padStart(4, '0')}.JPG`,
+        (i) => `IMG_${String(2300 + i).padStart(4, '0')}.JPG`,
+        (i) => `IMG_${String(2310 + i).padStart(4, '0')}.JPG`,
+        // Simple numbered patterns
+        (i) => `${i}.jpg`,
+        (i) => `${i}.jpeg`,
+        (i) => `${i}.png`,
+        (i) => `${i}.JPG`,
+        (i) => `${i}.JPEG`,
+        (i) => `${i}.PNG`,
+      ];
+
+      // Try loading images with different patterns
+      const triedFiles = new Set();
+      let attemptCount = 0;
+      let loadingRemoved = false;
+
+      function tryLoadNext() {
+        if (attemptCount >= maxAttempts) {
+          if (!loadingRemoved && loadingDiv.parentNode) {
+            loadingDiv.remove();
+            loadingRemoved = true;
+          }
+          if (loaded === 0 && photoGrid.children.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'photo-empty';
+            empty.textContent = 'No photos found. Please check the folder: ' + basePath;
+            photoGrid.appendChild(empty);
+          }
+          return;
+        }
+
+        attemptCount++;
+        const patternIndex = (attemptCount - 1) % patterns.length;
+        const fileIndex = Math.floor((attemptCount - 1) / patterns.length) + 1;
+        const fileName = patterns[patternIndex](fileIndex);
+        const fileKey = fileName.toLowerCase();
+
+        if (triedFiles.has(fileKey)) {
+          tryLoadNext();
+          return;
+        }
+        triedFiles.add(fileKey);
+
+        // Try all extensions
+        imageExtensions.forEach(ext => {
+          let testFileName = fileName;
+          if (!fileName.match(/\.(jpg|jpeg|png|JPG|JPEG|PNG|DNG)$/i)) {
+            testFileName = fileName.replace(/\.[^.]+$/, '') + '.' + ext;
+          } else if (!fileName.toLowerCase().endsWith(ext.toLowerCase())) {
+            return;
+          }
+          
+          const fullPath = basePath + testFileName;
+          const encodedPath = encodeImagePath(fullPath);
+          const img = new Image();
+          
+          img.onload = () => {
+            if (!img.complete) return;
+            
+            // Check if this photo still belongs to the current place
+            if (currentPlaceId !== place.id) {
+              return; // Don't add photo if place has changed
+            }
+            
+            if (!loadingRemoved && loadingDiv.parentNode) {
+              loadingDiv.remove();
+              loadingRemoved = true;
+            }
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'photo-item';
+            wrapper.style.cursor = 'pointer';
+            wrapper.title = 'Click to view full size';
+            wrapper.appendChild(img);
+            
+            wrapper.addEventListener('click', (e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              showImageModal(img.src, place.name);
+            });
+            
+            photoGrid.appendChild(wrapper);
+            loaded++;
+          };
+          
+          img.onerror = () => {
+            // Try next
+          };
+          
+          img.src = encodedPath;
+          img.alt = `${place.name} photo`;
+        });
+
+        if (attemptCount < maxAttempts) {
+          setTimeout(tryLoadNext, 20);
+        } else {
+          setTimeout(() => {
+            // Double check place hasn't changed
+            if (currentPlaceId !== place.id) {
+              return;
+            }
+            
+            if (!loadingRemoved && loadingDiv.parentNode) {
+              loadingDiv.remove();
+              loadingRemoved = true;
+            }
+            if (loaded === 0 && photoGrid.children.length === 0) {
+              const empty = document.createElement('div');
+              empty.className = 'photo-empty';
+              empty.textContent = 'No photos found. Please check the folder: ' + basePath;
+              photoGrid.appendChild(empty);
+            }
+          }, 500);
+        }
+      }
+
+      tryLoadNext();
+    }
+
+    /* ---------------------------
+       IMAGE MODAL FOR FULL-SIZE VIEW
+       --------------------------- */
+    function showImageModal(imageSrc, placeName) {
+      console.log('Opening modal for image:', imageSrc);
+      
+      // Remove existing modal if any
+      const existingModal = document.getElementById('imageModal');
+      if (existingModal) {
+        existingModal.remove();
+      }
+
+      const modal = document.createElement('div');
+      modal.id = 'imageModal';
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        cursor: pointer;
+        backdrop-filter: blur(10px);
+      `;
+
+      const img = document.createElement('img');
+      img.src = imageSrc;
+      img.alt = placeName;
+      img.style.cssText = `
+        max-width: 90%;
+        max-height: 90%;
+        object-fit: contain;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+        cursor: default;
+        pointer-events: auto;
+      `;
+      img.onerror = () => {
+        console.error('Failed to load image in modal:', imageSrc);
+        modal.remove();
+      };
+
+      const closeBtn = document.createElement('button');
+      closeBtn.innerHTML = '✕';
+      closeBtn.style.cssText = `
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        font-size: 20px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(10px);
+        transition: all 0.2s;
+      `;
+      closeBtn.onmouseover = () => {
+        closeBtn.style.background = 'rgba(255, 255, 255, 0.3)';
+        closeBtn.style.transform = 'scale(1.1)';
+      };
+      closeBtn.onmouseout = () => {
+        closeBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+        closeBtn.style.transform = 'scale(1)';
+      };
+
+      const closeModal = () => {
+        modal.style.opacity = '0';
+        setTimeout(() => modal.remove(), 200);
+      };
+
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeModal();
+      });
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          closeModal();
+        }
+      });
+      img.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+
+      modal.appendChild(img);
+      modal.appendChild(closeBtn);
+      document.body.appendChild(modal);
+
+      // Animate in
+      setTimeout(() => {
+        modal.style.opacity = '1';
+        modal.style.transition = 'opacity 0.2s';
+      }, 10);
+
+      // Close on Escape key
+      const escapeHandler = (e) => {
+        if (e.key === 'Escape') {
+          closeModal();
+          document.removeEventListener('keydown', escapeHandler);
+        }
+      };
+      document.addEventListener('keydown', escapeHandler);
+    }
+
+    /* ---------------------------
+       PLACES LIST
+       --------------------------- */
+    async function renderPlaces() {
+      const filtered = places.filter(p => {
+        if (currentYear !== 'all' && p.year !== currentYear) return false;
+        if (currentCategory !== 'all' && p.category !== currentCategory) return false;
+        return true;
+      });
+
+      placeListEl.innerHTML = '';
+
+      filtered.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'place-card' + (p.id === activeId ? ' active' : '');
+        card.dataset.id = p.id;
+
+        const catCfg = CATEGORY_CONFIG[p.category] || CATEGORY_CONFIG.etc;
+        card.innerHTML = `
+          <div class="place-main">
+            <div class="place-name">${p.name}</div>
+            <div class="place-type">${catCfg.icon} ${catCfg.label}</div>
+          </div>
+          <div class="place-meta">${p.city} · ${p.address}</div>
+        `;
+        card.title = `${p.name} – ${p.city}`;
+
+        card.addEventListener('click', (e) => {
+          createSparkles(e, 20);
+          activeId = p.id;
+          renderPlaces();
+          updateMemoryCard(p, filtered.length);
+          updateMapCategoryBadge(p.category);
+          if (map && p.coords) {
+            map.setView(p.coords, Math.max(map.getZoom(), 12), {
+              animate: true,
+              duration: 0.5
+            });
+          }
+        });
+
+        placeListEl.appendChild(card);
+      });
+
+      memBadge.textContent = `${filtered.length} / ${places.length} places`;
+      await updateMapMarkers(filtered);
+    }
+
+    /* ---------------------------
+       MEMORY CARD
+       --------------------------- */
+    function resetMemoryCard() {
+      memTitle.textContent = 'Choose a place';
+      memSub.textContent = 'Select a pin on the map or a place from the list to open your memory card.';
+      memType.innerHTML = `<span class="icon">✨</span><span>TYPE</span>`;
+      memCity.textContent = '–';
+      memYear.textContent = '–';
+      memAddress.textContent = '–';
+      memNote.textContent = 'Here I will write my personal memory or one-sentence insight about this place.';
+      memTip.textContent = 'Food recommendations, best time to visit, who I went with, or any small detail I want to remember.';
+      photoGrid.innerHTML = `
+        <div class="photo-empty">
+          No photos loaded yet. Choose a place on the left or center to see its gallery.
+        </div>
+      `;
+    }
+
+    function getCategoryConfig(catKey) {
+      return CATEGORY_CONFIG[catKey] || CATEGORY_CONFIG.etc;
+    }
+
+    function updateMemoryCard(place, countInList) {
+      const catCfg = getCategoryConfig(place.category);
+      const contentElements = document.querySelectorAll('.memory-content');
+      contentElements.forEach(el => {
+        el.style.animation = 'none';
+        setTimeout(() => {
+          el.style.animation = 'fadeIn 0.3s ease-in-out';
+        }, 10);
+      });
+
+      memTitle.textContent = place.name;
+      memSub.textContent = `${place.city} · ${place.address}`;
+      memType.innerHTML = `<span class="icon">${catCfg.icon}</span><span>${catCfg.label}</span>`;
+      memCity.textContent = place.city;
+      memYear.textContent = place.year;
+      memAddress.textContent = place.address;
+
+      if (place.note) {
+        memNote.textContent = place.note;
+      } else {
+        memNote.textContent = 'I will write a short memory about this place here.';
+      }
+
+      // Category-based tips (English)
+      if (place.category === 'food' || place.category === 'cafe') {
+        memTip.textContent = 'Write about what you ate, your favorite menu, the mood of the place, and why you would go back.';
+      } else if (place.category === 'nature') {
+        memTip.textContent = 'Record the weather, season, who you went with, and how the landscape made you feel.';
+      } else if (place.category === 'culture') {
+        memTip.textContent = 'Note which artworks or moments impressed you the most and any ideas you got from them.';
+      } else if (place.category === 'exp') {
+        memTip.textContent = 'Summarize the main experience: rides, activities, special moments or challenges.';
+      } else if (place.category === 'study') {
+        memTip.textContent = 'Write about your study mood, your goals that day, and how this place supported your learning.';
+      } else if (place.category === 'market') {
+        memTip.textContent = 'List what you bought, price impressions, and small discoveries like “I can buy this in Korea!”.';
+      } else if (place.category === 'daily') {
+        memTip.textContent = 'Describe your daily routine here, people you met, and how this place felt as part of your everyday life.';
+      } else {
+        memTip.textContent = 'Write any emotions, lessons, or a one-line message you want to leave for your future self.';
+      }
+
+      memBadge.textContent = `${countInList} / ${places.length} places`;
+      loadGalleryForPlace(place);
+    }
+
+    /* ---------------------------
+       MAP CATEGORY BADGE
+       --------------------------- */
+    function updateMapCategoryBadge(catKey) {
+      let key = catKey || currentCategory;
+      if (!key || key === 'all') key = 'all';
+      const cfg = getCategoryConfig(key);
+      const label = cfg.label === 'All' ? 'All places' : `${cfg.label} only`;
+      mapCategoryBadge.innerHTML = `<span class="icon">${cfg.icon}</span><span class="label">${label}</span>`;
+    }
+
+    /* ---------------------------
+       INITIALIZATION
+       --------------------------- */
+    initMap();
+    buildYearFilters();
+    buildTypeFilters();
+    renderPlaces();
+    resetMemoryCard();
+    updateMapCategoryBadge();
+  </script>
+</body>
+</html>
